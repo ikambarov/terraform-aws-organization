@@ -114,6 +114,18 @@ variable "ssm_managed_disabled_value" {
   default     = "disabled"
 }
 
+variable "macie_scan_tag_key" {
+  description = "Required S3 bucket tag key for Macie scan eligibility."
+  type        = string
+  default     = "MacieScan"
+}
+
+variable "allowed_macie_scan_tag_values" {
+  description = "Allowed values for the MacieScan S3 bucket tag."
+  type        = list(string)
+  default     = ["enabled", "disabled"]
+}
+
 variable "user1" {
   description = "Accepted from the shared root tfvars; not used by this module."
   type        = any

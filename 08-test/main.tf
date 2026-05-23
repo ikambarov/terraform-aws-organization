@@ -247,6 +247,11 @@ resource "aws_iam_role_policy_attachment" "cloudwatch_agent" {
   policy_arn = "arn:${data.aws_partition.current.partition}:iam::aws:policy/CloudWatchAgentServerPolicy"
 }
 
+resource "aws_iam_role_policy_attachment" "cloudwatch_agent_ssm" {
+  role       = aws_iam_role.cloudwatch_agent.name
+  policy_arn = "arn:${data.aws_partition.current.partition}:iam::aws:policy/AmazonSSMManagedInstanceCore"
+}
+
 resource "aws_iam_instance_profile" "cloudwatch_agent" {
   name = local.cloudwatch_agent_instance_profile_name
   role = aws_iam_role.cloudwatch_agent.name
@@ -315,6 +320,8 @@ resource "aws_instance" "cloudwatch_agent_installed" {
   user_data = <<-EOT
     #!/bin/bash
     set -eux
+    dnf install -y amazon-ssm-agent || true
+    systemctl enable --now amazon-ssm-agent
     dnf install -y amazon-cloudwatch-agent
     cat > /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json <<'EOF'
     {
@@ -354,6 +361,7 @@ resource "aws_instance" "cloudwatch_agent_installed" {
 
   depends_on = [
     aws_iam_role_policy_attachment.cloudwatch_agent,
+    aws_iam_role_policy_attachment.cloudwatch_agent_ssm,
   ]
 
   tags        = local.cloudwatch_agent_installed_instance_tags

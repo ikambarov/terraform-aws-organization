@@ -58,6 +58,115 @@ data "aws_iam_policy_document" "config_delivery" {
   }
 }
 
+data "archive_file" "s3_macie_scan_tag_check" {
+  type        = "zip"
+  source_file = "${path.module}/lambda_s3_macie_scan_tag_check.py"
+  output_path = "${path.module}/.terraform/s3_macie_scan_tag_check.zip"
+}
+
+data "archive_file" "cloudwatch_agent_check" {
+  type        = "zip"
+  source_file = "${path.module}/lambda_cloudwatch_agent_check.py"
+  output_path = "${path.module}/.terraform/cloudwatch_agent_check.zip"
+}
+
+data "archive_file" "ssm_managed_check" {
+  type        = "zip"
+  source_file = "${path.module}/lambda_ssm_managed_check.py"
+  output_path = "${path.module}/.terraform/ssm_managed_check.zip"
+}
+
+data "aws_iam_policy_document" "lambda_assume_role" {
+  statement {
+    effect  = "Allow"
+    actions = ["sts:AssumeRole"]
+
+    principals {
+      type        = "Service"
+      identifiers = ["lambda.amazonaws.com"]
+    }
+  }
+}
+
+data "aws_iam_policy_document" "s3_macie_scan_tag_check_lambda" {
+  statement {
+    sid    = "AllowLambdaLogging"
+    effect = "Allow"
+
+    actions = [
+      "logs:CreateLogGroup",
+      "logs:CreateLogStream",
+      "logs:PutLogEvents",
+    ]
+
+    resources = ["arn:${data.aws_partition.current.partition}:logs:${var.aws_region}:*:log-group:/aws/lambda/*"]
+  }
+
+  statement {
+    sid    = "AllowConfigEvaluations"
+    effect = "Allow"
+
+    actions = [
+      "config:PutEvaluations",
+    ]
+
+    resources = ["*"]
+  }
+
+  statement {
+    sid    = "AllowS3TagRead"
+    effect = "Allow"
+
+    actions = [
+      "s3:GetBucketTagging",
+      "s3:ListAllMyBuckets",
+    ]
+
+    resources = ["*"]
+  }
+}
+
+data "aws_iam_policy_document" "cloudwatch_agent_check_lambda" {
+  statement {
+    sid    = "AllowLambdaLogging"
+    effect = "Allow"
+
+    actions = [
+      "logs:CreateLogGroup",
+      "logs:CreateLogStream",
+      "logs:PutLogEvents",
+    ]
+
+    resources = ["arn:${data.aws_partition.current.partition}:logs:${var.aws_region}:*:log-group:/aws/lambda/*"]
+  }
+
+  statement {
+    sid    = "AllowConfigEvaluations"
+    effect = "Allow"
+
+    actions = [
+      "config:PutEvaluations",
+    ]
+
+    resources = ["*"]
+  }
+
+  statement {
+    sid    = "AllowEc2AndSsmRead"
+    effect = "Allow"
+
+    actions = [
+      "ec2:DescribeInstances",
+      "ssm:DescribeInstanceInformation",
+      "ssm:GetCommandInvocation",
+      "ssm:SendCommand",
+    ]
+
+    resources = ["*"]
+  }
+
+}
+
 resource "aws_s3_bucket" "config_delivery" {
   provider = aws.security
   bucket   = local.config_delivery_bucket_name
@@ -287,6 +396,256 @@ resource "aws_config_configuration_recorder_status" "workload_prod" {
   ]
 }
 
+resource "aws_iam_role" "workload_dev_s3_macie_scan_tag_check_lambda" {
+  provider = aws.workload_dev
+
+  name               = "security-baseline-s3-macie-tag-config-rule"
+  assume_role_policy = data.aws_iam_policy_document.lambda_assume_role.json
+
+  lifecycle {
+    prevent_destroy = true
+  }
+}
+
+resource "aws_iam_role" "workload_prod_s3_macie_scan_tag_check_lambda" {
+  provider = aws.workload_prod
+
+  name               = "security-baseline-s3-macie-tag-config-rule"
+  assume_role_policy = data.aws_iam_policy_document.lambda_assume_role.json
+
+  lifecycle {
+    prevent_destroy = true
+  }
+}
+
+resource "aws_iam_role_policy" "workload_dev_s3_macie_scan_tag_check_lambda" {
+  provider = aws.workload_dev
+
+  name   = "s3-macie-scan-tag-config-rule"
+  role   = aws_iam_role.workload_dev_s3_macie_scan_tag_check_lambda.id
+  policy = data.aws_iam_policy_document.s3_macie_scan_tag_check_lambda.json
+}
+
+resource "aws_iam_role_policy" "workload_prod_s3_macie_scan_tag_check_lambda" {
+  provider = aws.workload_prod
+
+  name   = "s3-macie-scan-tag-config-rule"
+  role   = aws_iam_role.workload_prod_s3_macie_scan_tag_check_lambda.id
+  policy = data.aws_iam_policy_document.s3_macie_scan_tag_check_lambda.json
+}
+
+resource "aws_lambda_function" "workload_dev_s3_macie_scan_tag_check" {
+  provider = aws.workload_dev
+
+  function_name    = "security-baseline-s3-macie-tag-config-rule"
+  role             = aws_iam_role.workload_dev_s3_macie_scan_tag_check_lambda.arn
+  handler          = "lambda_s3_macie_scan_tag_check.lambda_handler"
+  runtime          = "python3.12"
+  filename         = data.archive_file.s3_macie_scan_tag_check.output_path
+  source_code_hash = data.archive_file.s3_macie_scan_tag_check.output_base64sha256
+  timeout          = 60
+
+  depends_on = [
+    aws_iam_role_policy.workload_dev_s3_macie_scan_tag_check_lambda,
+  ]
+
+  lifecycle {
+    prevent_destroy = true
+  }
+}
+
+resource "aws_lambda_function" "workload_prod_s3_macie_scan_tag_check" {
+  provider = aws.workload_prod
+
+  function_name    = "security-baseline-s3-macie-tag-config-rule"
+  role             = aws_iam_role.workload_prod_s3_macie_scan_tag_check_lambda.arn
+  handler          = "lambda_s3_macie_scan_tag_check.lambda_handler"
+  runtime          = "python3.12"
+  filename         = data.archive_file.s3_macie_scan_tag_check.output_path
+  source_code_hash = data.archive_file.s3_macie_scan_tag_check.output_base64sha256
+  timeout          = 60
+
+  depends_on = [
+    aws_iam_role_policy.workload_prod_s3_macie_scan_tag_check_lambda,
+  ]
+
+  lifecycle {
+    prevent_destroy = true
+  }
+}
+
+resource "aws_lambda_permission" "workload_dev_allow_config_s3_macie_scan_tag_check" {
+  provider = aws.workload_dev
+
+  statement_id  = "AllowExecutionFromConfig"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.workload_dev_s3_macie_scan_tag_check.function_name
+  principal     = "config.amazonaws.com"
+}
+
+resource "aws_lambda_permission" "workload_prod_allow_config_s3_macie_scan_tag_check" {
+  provider = aws.workload_prod
+
+  statement_id  = "AllowExecutionFromConfig"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.workload_prod_s3_macie_scan_tag_check.function_name
+  principal     = "config.amazonaws.com"
+}
+
+resource "aws_iam_role" "workload_dev_cloudwatch_agent_check_lambda" {
+  provider = aws.workload_dev
+
+  name               = "security-baseline-cloudwatch-agent-config-rule"
+  assume_role_policy = data.aws_iam_policy_document.lambda_assume_role.json
+
+  lifecycle {
+    prevent_destroy = true
+  }
+}
+
+resource "aws_iam_role" "workload_prod_cloudwatch_agent_check_lambda" {
+  provider = aws.workload_prod
+
+  name               = "security-baseline-cloudwatch-agent-config-rule"
+  assume_role_policy = data.aws_iam_policy_document.lambda_assume_role.json
+
+  lifecycle {
+    prevent_destroy = true
+  }
+}
+
+resource "aws_iam_role_policy" "workload_dev_cloudwatch_agent_check_lambda" {
+  provider = aws.workload_dev
+
+  name   = "cloudwatch-agent-config-rule"
+  role   = aws_iam_role.workload_dev_cloudwatch_agent_check_lambda.id
+  policy = data.aws_iam_policy_document.cloudwatch_agent_check_lambda.json
+}
+
+resource "aws_iam_role_policy" "workload_prod_cloudwatch_agent_check_lambda" {
+  provider = aws.workload_prod
+
+  name   = "cloudwatch-agent-config-rule"
+  role   = aws_iam_role.workload_prod_cloudwatch_agent_check_lambda.id
+  policy = data.aws_iam_policy_document.cloudwatch_agent_check_lambda.json
+}
+
+resource "aws_lambda_function" "workload_dev_cloudwatch_agent_check" {
+  provider = aws.workload_dev
+
+  function_name    = "security-baseline-cloudwatch-agent-config-rule"
+  role             = aws_iam_role.workload_dev_cloudwatch_agent_check_lambda.arn
+  handler          = "lambda_cloudwatch_agent_check.lambda_handler"
+  runtime          = "python3.12"
+  filename         = data.archive_file.cloudwatch_agent_check.output_path
+  source_code_hash = data.archive_file.cloudwatch_agent_check.output_base64sha256
+  timeout          = 120
+
+  depends_on = [
+    aws_iam_role_policy.workload_dev_cloudwatch_agent_check_lambda,
+  ]
+
+  lifecycle {
+    prevent_destroy = true
+  }
+}
+
+resource "aws_lambda_function" "workload_dev_ssm_managed_check" {
+  provider = aws.workload_dev
+
+  function_name    = "security-baseline-ssm-managed-config-rule"
+  role             = aws_iam_role.workload_dev_cloudwatch_agent_check_lambda.arn
+  handler          = "lambda_ssm_managed_check.lambda_handler"
+  runtime          = "python3.12"
+  filename         = data.archive_file.ssm_managed_check.output_path
+  source_code_hash = data.archive_file.ssm_managed_check.output_base64sha256
+  timeout          = 120
+
+  depends_on = [
+    aws_iam_role_policy.workload_dev_cloudwatch_agent_check_lambda,
+  ]
+
+  lifecycle {
+    prevent_destroy = true
+  }
+}
+
+resource "aws_lambda_function" "workload_prod_cloudwatch_agent_check" {
+  provider = aws.workload_prod
+
+  function_name    = "security-baseline-cloudwatch-agent-config-rule"
+  role             = aws_iam_role.workload_prod_cloudwatch_agent_check_lambda.arn
+  handler          = "lambda_cloudwatch_agent_check.lambda_handler"
+  runtime          = "python3.12"
+  filename         = data.archive_file.cloudwatch_agent_check.output_path
+  source_code_hash = data.archive_file.cloudwatch_agent_check.output_base64sha256
+  timeout          = 120
+
+  depends_on = [
+    aws_iam_role_policy.workload_prod_cloudwatch_agent_check_lambda,
+  ]
+
+  lifecycle {
+    prevent_destroy = true
+  }
+}
+
+resource "aws_lambda_function" "workload_prod_ssm_managed_check" {
+  provider = aws.workload_prod
+
+  function_name    = "security-baseline-ssm-managed-config-rule"
+  role             = aws_iam_role.workload_prod_cloudwatch_agent_check_lambda.arn
+  handler          = "lambda_ssm_managed_check.lambda_handler"
+  runtime          = "python3.12"
+  filename         = data.archive_file.ssm_managed_check.output_path
+  source_code_hash = data.archive_file.ssm_managed_check.output_base64sha256
+  timeout          = 120
+
+  depends_on = [
+    aws_iam_role_policy.workload_prod_cloudwatch_agent_check_lambda,
+  ]
+
+  lifecycle {
+    prevent_destroy = true
+  }
+}
+
+resource "aws_lambda_permission" "workload_dev_allow_config_cloudwatch_agent_check" {
+  provider = aws.workload_dev
+
+  statement_id  = "AllowExecutionFromConfig"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.workload_dev_cloudwatch_agent_check.function_name
+  principal     = "config.amazonaws.com"
+}
+
+resource "aws_lambda_permission" "workload_dev_allow_config_ssm_managed_check" {
+  provider = aws.workload_dev
+
+  statement_id  = "AllowExecutionFromConfig"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.workload_dev_ssm_managed_check.function_name
+  principal     = "config.amazonaws.com"
+}
+
+resource "aws_lambda_permission" "workload_prod_allow_config_cloudwatch_agent_check" {
+  provider = aws.workload_prod
+
+  statement_id  = "AllowExecutionFromConfig"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.workload_prod_cloudwatch_agent_check.function_name
+  principal     = "config.amazonaws.com"
+}
+
+resource "aws_lambda_permission" "workload_prod_allow_config_ssm_managed_check" {
+  provider = aws.workload_prod
+
+  statement_id  = "AllowExecutionFromConfig"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.workload_prod_ssm_managed_check.function_name
+  principal     = "config.amazonaws.com"
+}
+
 resource "aws_config_config_rule" "workload_dev_s3_public_access" {
   provider = aws.workload_dev
 
@@ -317,23 +676,96 @@ resource "aws_config_config_rule" "workload_prod_s3_public_access" {
   ]
 }
 
+resource "aws_config_config_rule" "workload_dev_s3_macie_scan_tag_required" {
+  provider = aws.workload_dev
+
+  name = "s3-bucket-macie-scan-tag-required"
+
+  input_parameters = jsonencode({
+    tagKey        = var.macie_scan_tag_key
+    allowedValues = var.allowed_macie_scan_tag_values
+  })
+
+  source {
+    owner             = "CUSTOM_LAMBDA"
+    source_identifier = aws_lambda_function.workload_dev_s3_macie_scan_tag_check.arn
+
+    source_detail {
+      event_source = "aws.config"
+      message_type = "ConfigurationItemChangeNotification"
+    }
+
+    source_detail {
+      event_source = "aws.config"
+      message_type = "ScheduledNotification"
+    }
+  }
+
+  depends_on = [
+    aws_config_configuration_recorder_status.workload_dev,
+    aws_lambda_permission.workload_dev_allow_config_s3_macie_scan_tag_check,
+  ]
+}
+
+resource "aws_config_config_rule" "workload_prod_s3_macie_scan_tag_required" {
+  provider = aws.workload_prod
+
+  name = "s3-bucket-macie-scan-tag-required"
+
+  input_parameters = jsonencode({
+    tagKey        = var.macie_scan_tag_key
+    allowedValues = var.allowed_macie_scan_tag_values
+  })
+
+  source {
+    owner             = "CUSTOM_LAMBDA"
+    source_identifier = aws_lambda_function.workload_prod_s3_macie_scan_tag_check.arn
+
+    source_detail {
+      event_source = "aws.config"
+      message_type = "ConfigurationItemChangeNotification"
+    }
+
+    source_detail {
+      event_source = "aws.config"
+      message_type = "ScheduledNotification"
+    }
+  }
+
+  depends_on = [
+    aws_config_configuration_recorder_status.workload_prod,
+    aws_lambda_permission.workload_prod_allow_config_s3_macie_scan_tag_check,
+  ]
+}
+
 resource "aws_config_config_rule" "workload_dev_ssm_managed_instance" {
   provider = aws.workload_dev
 
   name = "ec2-instance-managed-by-systems-manager"
 
-  scope {
-    tag_key   = var.ssm_managed_tag_key
-    tag_value = var.ssm_managed_enabled_value
-  }
+  input_parameters = jsonencode({
+    tagKey   = var.ssm_managed_tag_key
+    tagValue = var.ssm_managed_enabled_value
+  })
 
   source {
-    owner             = "AWS"
-    source_identifier = "EC2_INSTANCE_MANAGED_BY_SSM"
+    owner             = "CUSTOM_LAMBDA"
+    source_identifier = aws_lambda_function.workload_dev_ssm_managed_check.arn
+
+    source_detail {
+      event_source = "aws.config"
+      message_type = "ConfigurationItemChangeNotification"
+    }
+
+    source_detail {
+      event_source = "aws.config"
+      message_type = "ScheduledNotification"
+    }
   }
 
   depends_on = [
     aws_config_configuration_recorder_status.workload_dev,
+    aws_lambda_permission.workload_dev_allow_config_ssm_managed_check,
   ]
 }
 
@@ -342,70 +774,91 @@ resource "aws_config_config_rule" "workload_prod_ssm_managed_instance" {
 
   name = "ec2-instance-managed-by-systems-manager"
 
-  scope {
-    tag_key   = var.ssm_managed_tag_key
-    tag_value = var.ssm_managed_enabled_value
-  }
+  input_parameters = jsonencode({
+    tagKey   = var.ssm_managed_tag_key
+    tagValue = var.ssm_managed_enabled_value
+  })
 
   source {
-    owner             = "AWS"
-    source_identifier = "EC2_INSTANCE_MANAGED_BY_SSM"
+    owner             = "CUSTOM_LAMBDA"
+    source_identifier = aws_lambda_function.workload_prod_ssm_managed_check.arn
+
+    source_detail {
+      event_source = "aws.config"
+      message_type = "ConfigurationItemChangeNotification"
+    }
+
+    source_detail {
+      event_source = "aws.config"
+      message_type = "ScheduledNotification"
+    }
   }
 
   depends_on = [
     aws_config_configuration_recorder_status.workload_prod,
+    aws_lambda_permission.workload_prod_allow_config_ssm_managed_check,
   ]
 }
 
-# This managed rule uses SSM Inventory to validate CloudWatch Agent package presence
-# for resources tagged CloudWatchAgent = enabled.
 resource "aws_config_config_rule" "workload_dev_cloudwatch_agent_association_compliance" {
   provider = aws.workload_dev
 
   name = "cloudwatch-agent-application-required"
 
   input_parameters = jsonencode({
-    applicationNames = join(",", var.cloudwatch_agent_application_names)
+    tagKey   = var.cloudwatch_agent_tag_key
+    tagValue = var.cloudwatch_agent_enabled_value
   })
 
-  scope {
-    tag_key   = var.cloudwatch_agent_tag_key
-    tag_value = var.cloudwatch_agent_enabled_value
-  }
-
   source {
-    owner             = "AWS"
-    source_identifier = "EC2_MANAGEDINSTANCE_APPLICATIONS_REQUIRED"
+    owner             = "CUSTOM_LAMBDA"
+    source_identifier = aws_lambda_function.workload_dev_cloudwatch_agent_check.arn
+
+    source_detail {
+      event_source = "aws.config"
+      message_type = "ConfigurationItemChangeNotification"
+    }
+
+    source_detail {
+      event_source = "aws.config"
+      message_type = "ScheduledNotification"
+    }
   }
 
   depends_on = [
     aws_config_configuration_recorder_status.workload_dev,
+    aws_lambda_permission.workload_dev_allow_config_cloudwatch_agent_check,
   ]
 }
 
-# This managed rule uses SSM Inventory to validate CloudWatch Agent package presence
-# for resources tagged CloudWatchAgent = enabled.
 resource "aws_config_config_rule" "workload_prod_cloudwatch_agent_association_compliance" {
   provider = aws.workload_prod
 
   name = "cloudwatch-agent-application-required"
 
   input_parameters = jsonencode({
-    applicationNames = join(",", var.cloudwatch_agent_application_names)
+    tagKey   = var.cloudwatch_agent_tag_key
+    tagValue = var.cloudwatch_agent_enabled_value
   })
 
-  scope {
-    tag_key   = var.cloudwatch_agent_tag_key
-    tag_value = var.cloudwatch_agent_enabled_value
-  }
-
   source {
-    owner             = "AWS"
-    source_identifier = "EC2_MANAGEDINSTANCE_APPLICATIONS_REQUIRED"
+    owner             = "CUSTOM_LAMBDA"
+    source_identifier = aws_lambda_function.workload_prod_cloudwatch_agent_check.arn
+
+    source_detail {
+      event_source = "aws.config"
+      message_type = "ConfigurationItemChangeNotification"
+    }
+
+    source_detail {
+      event_source = "aws.config"
+      message_type = "ScheduledNotification"
+    }
   }
 
   depends_on = [
     aws_config_configuration_recorder_status.workload_prod,
+    aws_lambda_permission.workload_prod_allow_config_cloudwatch_agent_check,
   ]
 }
 

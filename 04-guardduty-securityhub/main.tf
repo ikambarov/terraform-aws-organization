@@ -2,14 +2,21 @@ data "aws_partition" "current" {
   provider = aws.management
 }
 
+data "aws_organizations_organization" "current" {
+  provider = aws.management
+}
+
 locals {
   foundational_security_best_practices_standard_arn = "arn:${data.aws_partition.current.partition}:securityhub:${var.aws_region}::standards/aws-foundational-security-best-practices/v/1.0.0"
   security_account_id                               = var.security_account_id
   workload_dev_account_id                           = var.workload_dev_account_id
   workload_prod_account_id                          = var.workload_prod_account_id
-  security_account_role_arn                         = "arn:${data.aws_partition.current.partition}:iam::${local.security_account_id}:role/${var.member_account_role_name}"
-  workload_dev_account_role_arn                     = "arn:${data.aws_partition.current.partition}:iam::${local.workload_dev_account_id}:role/${var.member_account_role_name}"
-  workload_prod_account_role_arn                    = "arn:${data.aws_partition.current.partition}:iam::${local.workload_prod_account_id}:role/${var.member_account_role_name}"
+  account_emails_by_id = {
+    for account in data.aws_organizations_organization.current.accounts : account.id => account.email
+  }
+  security_account_role_arn      = "arn:${data.aws_partition.current.partition}:iam::${local.security_account_id}:role/${var.member_account_role_name}"
+  workload_dev_account_role_arn  = "arn:${data.aws_partition.current.partition}:iam::${local.workload_dev_account_id}:role/${var.member_account_role_name}"
+  workload_prod_account_role_arn = "arn:${data.aws_partition.current.partition}:iam::${local.workload_prod_account_id}:role/${var.member_account_role_name}"
 }
 
 resource "aws_organizations_aws_service_access" "guardduty" {
@@ -91,6 +98,50 @@ resource "aws_guardduty_organization_configuration" "security" {
   }
 }
 
+resource "aws_guardduty_member" "workload_dev" {
+  provider = aws.security
+
+  account_id                 = local.workload_dev_account_id
+  detector_id                = aws_guardduty_detector.security.id
+  disable_email_notification = true
+  email                      = local.account_emails_by_id[local.workload_dev_account_id]
+  invite                     = false
+
+  depends_on = [
+    aws_guardduty_organization_configuration.security,
+    aws_guardduty_detector.workload_dev,
+  ]
+
+  lifecycle {
+    ignore_changes = [
+      email,
+      invite,
+    ]
+  }
+}
+
+resource "aws_guardduty_member" "workload_prod" {
+  provider = aws.security
+
+  account_id                 = local.workload_prod_account_id
+  detector_id                = aws_guardduty_detector.security.id
+  disable_email_notification = true
+  email                      = local.account_emails_by_id[local.workload_prod_account_id]
+  invite                     = false
+
+  depends_on = [
+    aws_guardduty_organization_configuration.security,
+    aws_guardduty_detector.workload_prod,
+  ]
+
+  lifecycle {
+    ignore_changes = [
+      email,
+      invite,
+    ]
+  }
+}
+
 resource "aws_securityhub_organization_admin_account" "security" {
   provider = aws.management
 
@@ -152,6 +203,32 @@ resource "aws_securityhub_organization_configuration" "security" {
   lifecycle {
     prevent_destroy = true
   }
+}
+
+resource "aws_securityhub_member" "workload_dev" {
+  provider = aws.security
+
+  account_id = local.workload_dev_account_id
+  email      = local.account_emails_by_id[local.workload_dev_account_id]
+  invite     = false
+
+  depends_on = [
+    aws_securityhub_organization_configuration.security,
+    aws_securityhub_account.workload_dev,
+  ]
+}
+
+resource "aws_securityhub_member" "workload_prod" {
+  provider = aws.security
+
+  account_id = local.workload_prod_account_id
+  email      = local.account_emails_by_id[local.workload_prod_account_id]
+  invite     = false
+
+  depends_on = [
+    aws_securityhub_organization_configuration.security,
+    aws_securityhub_account.workload_prod,
+  ]
 }
 
 resource "aws_securityhub_standards_subscription" "security_foundational_best_practices" {

@@ -291,39 +291,17 @@ resource "aws_organizations_policy" "require_ec2_tags" {
 
 resource "aws_organizations_policy" "require_s3_macie_tag" {
   name        = var.require_s3_macie_tag_policy_name
-  description = "Require and protect S3 MacieScan tags where S3 tagging APIs support request tag conditions."
+  description = "Protect S3 MacieScan bucket tags where S3 APIs expose usable condition keys."
   type        = "SERVICE_CONTROL_POLICY"
 
   content = jsonencode({
     Version = "2012-10-17"
     Statement = [
       {
-        Sid      = "DenyBucketTaggingWithoutMacieScan"
-        Effect   = "Deny"
-        Action   = "s3:PutBucketTagging"
-        Resource = local.s3_bucket_arn
-        Condition = {
-          Null = {
-            "aws:RequestTag/${var.s3_macie_scan_tag_key}" = "true"
-          }
-        }
-      },
-      {
-        Sid      = "DenyBucketTaggingWithInvalidMacieScan"
-        Effect   = "Deny"
-        Action   = "s3:PutBucketTagging"
-        Resource = local.s3_bucket_arn
-        Condition = {
-          StringNotEquals = {
-            "aws:RequestTag/${var.s3_macie_scan_tag_key}" = var.allowed_macie_scan_tag_values
-          }
-        }
-      },
-      {
         Sid      = "DenyDeletingBucketTags"
         Effect   = "Deny"
         Action   = "s3:DeleteBucketTagging"
-        Resource = local.s3_bucket_arn
+        Resource = "*"
       },
     ]
   })
