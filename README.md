@@ -42,14 +42,240 @@ Expected chain:
 runner credentials -> management_account_role_arn -> member account execution roles
 ```
 
-Detailed role policies and apply order will be documented later.
+Policy names and scopes are listed below.
 
 ## Role Setup
 
-Use these names unless you choose different names:
+Role names used by Terraform:
 
 - Management: `TerraformManagementExecutionRole`
 - Members: `TerraformMemberExecutionRole`
+
+### Policy Setup
+
+Create the policies in the account where the matching role will live.
+
+#### Management Account
+
+Create one IAM policy:
+
+- `TerraformManagementExecutionPolicy`
+
+Steps:
+
+1. Sign in to the management account.
+2. Open IAM > Policies > Create policy.
+3. Select JSON.
+4. Paste this policy.
+5. Replace the member account ID placeholders.
+6. Select Next.
+7. Name it `TerraformManagementExecutionPolicy`.
+8. Select Create policy.
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": "sts:AssumeRole",
+      "Resource": [
+        "arn:aws:iam::<security-account-id>:role/TerraformMemberExecutionRole",
+        "arn:aws:iam::<workload-dev-account-id>:role/TerraformMemberExecutionRole",
+        "arn:aws:iam::<workload-prod-account-id>:role/TerraformMemberExecutionRole"
+      ]
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "organizations:DescribeOrganization",
+        "organizations:ListRoots",
+        "organizations:ListAccounts",
+        "organizations:ListAccountsForParent",
+        "organizations:ListOrganizationalUnitsForParent",
+        "organizations:EnableAWSServiceAccess",
+        "organizations:ListAWSServiceAccessForOrganization",
+        "organizations:EnablePolicyType",
+        "organizations:ListPolicies",
+        "organizations:CreatePolicy",
+        "organizations:UpdatePolicy",
+        "organizations:DescribePolicy",
+        "organizations:AttachPolicy",
+        "organizations:DetachPolicy",
+        "organizations:ListTargetsForPolicy",
+        "organizations:ListPoliciesForTarget",
+        "cloudtrail:CreateTrail",
+        "cloudtrail:UpdateTrail",
+        "cloudtrail:GetTrail",
+        "cloudtrail:DescribeTrails",
+        "cloudtrail:GetTrailStatus",
+        "cloudtrail:StartLogging",
+        "cloudtrail:PutEventSelectors",
+        "guardduty:EnableOrganizationAdminAccount",
+        "guardduty:ListOrganizationAdminAccounts",
+        "securityhub:EnableOrganizationAdminAccount",
+        "securityhub:ListOrganizationAdminAccounts",
+        "macie2:EnableOrganizationAdminAccount",
+        "macie2:ListOrganizationAdminAccounts",
+        "sso:*",
+        "identitystore:DescribeUser",
+        "identitystore:GetUserId",
+        "identitystore:CreateUser",
+        "identitystore:DeleteUser"
+      ],
+      "Resource": "*"
+    }
+  ]
+}
+```
+
+#### Security Account
+
+Create one IAM policy:
+
+- `TerraformSecurityExecutionPolicy`
+
+Steps:
+
+1. Switch to the security account.
+2. Open IAM > Policies > Create policy.
+3. Select JSON.
+4. Paste this policy.
+5. Select Next.
+6. Name it `TerraformSecurityExecutionPolicy`.
+7. Select Create policy.
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "s3:*",
+        "kms:*",
+        "config:*",
+        "guardduty:*",
+        "securityhub:*",
+        "macie2:*",
+        "iam:CreateServiceLinkedRole"
+      ],
+      "Resource": "*"
+    }
+  ]
+}
+```
+
+#### Workload-Dev Account
+
+Create two IAM policies:
+
+- `TerraformWorkloadBaselineExecutionPolicy`
+- `TerraformWorkloadDevTestPolicy`
+
+Steps for `TerraformWorkloadBaselineExecutionPolicy`:
+
+1. Switch to the workload-dev account.
+2. Open IAM > Policies > Create policy.
+3. Select JSON.
+4. Paste this policy.
+5. Select Next.
+6. Name it `TerraformWorkloadBaselineExecutionPolicy`.
+7. Select Create policy.
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "config:*",
+        "lambda:*",
+        "logs:*",
+        "guardduty:*",
+        "securityhub:*",
+        "macie2:*",
+        "backup:*",
+        "iam:CreateRole",
+        "iam:DeleteRole",
+        "iam:GetRole",
+        "iam:ListRolePolicies",
+        "iam:ListAttachedRolePolicies",
+        "iam:PutRolePolicy",
+        "iam:DeleteRolePolicy",
+        "iam:AttachRolePolicy",
+        "iam:DetachRolePolicy",
+        "iam:TagRole",
+        "iam:UntagRole",
+        "iam:PassRole",
+        "iam:CreateServiceLinkedRole"
+      ],
+      "Resource": "*"
+    }
+  ]
+}
+```
+
+Steps for `TerraformWorkloadDevTestPolicy`:
+
+1. Stay in the workload-dev account.
+2. Open IAM > Policies > Create policy.
+3. Select JSON.
+4. Paste this policy.
+5. Select Next.
+6. Name it `TerraformWorkloadDevTestPolicy`.
+7. Select Create policy.
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "ec2:Describe*",
+        "ec2:RunInstances",
+        "ec2:TerminateInstances",
+        "ec2:CreateTags",
+        "ec2:DeleteTags",
+        "ec2:CreateSecurityGroup",
+        "ec2:DeleteSecurityGroup",
+        "ec2:AuthorizeSecurityGroupEgress",
+        "s3:*",
+        "iam:CreateRole",
+        "iam:DeleteRole",
+        "iam:GetRole",
+        "iam:AttachRolePolicy",
+        "iam:DetachRolePolicy",
+        "iam:CreateInstanceProfile",
+        "iam:DeleteInstanceProfile",
+        "iam:AddRoleToInstanceProfile",
+        "iam:RemoveRoleFromInstanceProfile",
+        "iam:TagRole",
+        "iam:PassRole"
+      ],
+      "Resource": "*"
+    }
+  ]
+}
+```
+
+#### Workload-Prod Account
+
+Create one IAM policy:
+
+- `TerraformWorkloadBaselineExecutionPolicy`
+
+Steps:
+
+1. Switch to the workload-prod account.
+2. Open IAM > Policies > Create policy.
+3. Select JSON.
+4. Paste the same `TerraformWorkloadBaselineExecutionPolicy` JSON used for workload-dev.
+5. Select Next.
+6. Name it `TerraformWorkloadBaselineExecutionPolicy`.
+7. Select Create policy.
 
 ### Management Role
 
@@ -74,7 +300,8 @@ Use the IAM role/user ARN, not the temporary STS assumed-role session ARN.
 }
 ```
 
-4. Attach `AdministratorAccess`.
+4. Attach this customer-managed policy:
+   - `TerraformManagementExecutionPolicy`
 5. Name the role `TerraformManagementExecutionRole`.
 
 ### Member Roles
@@ -100,7 +327,11 @@ Repeat in security, workload-dev, and workload-prod.
 }
 ```
 
-4. Attach `AdministratorAccess`.
+4. Attach the customer-managed policy for that account:
+   - security: `TerraformSecurityExecutionPolicy`
+   - workload-dev: `TerraformWorkloadBaselineExecutionPolicy`
+   - workload-dev test resources: `TerraformWorkloadDevTestPolicy`
+   - workload-prod: `TerraformWorkloadBaselineExecutionPolicy`
 5. Name the role `TerraformMemberExecutionRole`.
 
 If a role already exists: IAM > Roles > select role > Trust relationships > Edit trust policy.
