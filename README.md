@@ -2,7 +2,7 @@
 
 This project defines a Terraform-based AWS Organizations security baseline for a 4-account AWS environment.
 
-![AWS Organizations Security Baseline](attachments/aws_organization.png)
+![AWS Organizations Security Baseline](attachments/plan.png)
 
 ## Account Structure
 
@@ -416,6 +416,8 @@ user2 = {
 
 ## 00-organization
 
+![AWS Organizations](attachments/aws-organizations.png)
+
 AWS Organizations is used to centrally manage multiple AWS accounts under one organization. It provides account grouping through Organizational Units, centralized governance through Service Control Policies, and a consistent structure for separating security and workload responsibilities.
 
 This baseline assumes the following accounts already exist and are already part of the AWS Organization:
@@ -431,6 +433,8 @@ These accounts are prerequisites. Terraform references the existing organization
 
 ## 01-identity-center
 
+![AWS IAM Identity Center](attachments/aws-iam-identity-center.png)
+
 IAM Identity Center provides unified access to AWS accounts through IAM Identity Center.
 
 It is used to avoid creating separate IAM users in each AWS account. Users sign in once, then access assigned AWS accounts using temporary credentials and account-specific permissions.
@@ -445,6 +449,8 @@ Permission sets:
 | `WorkloadProdAdmin` | `workload-prod` |
 
 ## 02-cloudtrail
+
+![AWS CloudTrail](attachments/aws-cloudtrail.png)
 
 Centralized CloudTrail logging records AWS account activity across the organization.
 
@@ -464,6 +470,8 @@ Configured items include:
 
 ## 03-config
 
+![AWS Config](attachments/aws-config.png)
+
 AWS Config records resource configuration and evaluates resources against compliance rules.
 
 It is used to identify configuration drift, missing controls, and non-compliant resources across workload accounts. The `security` account provides the central compliance view.
@@ -477,6 +485,8 @@ Checks:
 
 ## 04-guardduty-securityhub
 
+![AWS GuardDuty and Security Hub](attachments/aws-guardduty-securityhub.png)
+
 GuardDuty provides threat detection for AWS accounts. It analyzes signals such as CloudTrail events, DNS activity, VPC Flow Logs, EKS audit logs, S3 activity, and other supported data sources to identify suspicious behavior.
 
 Security Hub centralizes security findings and posture results. It provides one place to review findings from GuardDuty, AWS Config, and supported security services from the `security` account.
@@ -488,6 +498,8 @@ Included:
 - AWS Foundational Security Best Practices
 
 ## 05-scps
+
+![AWS Service Control Policies](attachments/aws-service-control-policies.png)
 
 Service Control Policies define preventive guardrails for accounts in the Workloads OU.
 
@@ -521,6 +533,8 @@ Guardrails:
 
 ## 06-backup
 
+![AWS Backup](attachments/aws-backup.png)
+
 AWS Backup provides centralized backup management for supported AWS resources.
 
 This baseline uses AWS Backup for EC2/EBS backup selection through tags.
@@ -532,6 +546,8 @@ This baseline uses AWS Backup for EC2/EBS backup selection through tags.
 | `Backup = disabled` | Excluded from backup plans |
 
 ## 07-macie
+
+![AWS Macie](attachments/aws-macie.png)
 
 Macie discovers sensitive data in S3 buckets.
 
