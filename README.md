@@ -51,17 +51,11 @@ Role names used by Terraform:
 - Management: `TerraformManagementExecutionRole`
 - Members: `TerraformMemberExecutionRole`
 
-### Policy Setup
+### Management Account
 
-Create the policies in the account where the matching role will live.
+Create one IAM policy and one IAM role in the management account.
 
-#### Management Account
-
-Create one IAM policy:
-
-- `TerraformManagementExecutionPolicy`
-
-Steps:
+#### Create IAM Policy
 
 1. Sign in to the management account.
 2. Open IAM > Policies > Create policy.
@@ -129,13 +123,37 @@ Steps:
 }
 ```
 
-#### Security Account
+#### Create IAM Role
 
-Create one IAM policy:
+1. Open IAM > Roles > Create role.
+2. Select Custom trust policy.
+3. Paste this trust policy, replacing `<management-account-id>` and `<runner-role-name>`.
 
-- `TerraformSecurityExecutionPolicy`
+Use the IAM role/user ARN, not the temporary STS assumed-role session ARN.
 
-Steps:
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": "arn:aws:iam::<management-account-id>:role/<runner-role-name>"
+      },
+      "Action": "sts:AssumeRole"
+    }
+  ]
+}
+```
+
+4. Attach `TerraformManagementExecutionPolicy`.
+5. Name the role `TerraformManagementExecutionRole`.
+
+### Security Account
+
+Create one IAM policy and one IAM role in the security account.
+
+#### Create IAM Policy
 
 1. Switch to the security account.
 2. Open IAM > Policies > Create policy.
@@ -166,14 +184,35 @@ Steps:
 }
 ```
 
-#### Workload-Dev Account
+#### Create IAM Role
 
-Create two IAM policies:
+1. Open IAM > Roles > Create role.
+2. Select Custom trust policy.
+3. Paste this trust policy, replacing `<management-account-id>`.
 
-- `TerraformWorkloadBaselineExecutionPolicy`
-- `TerraformWorkloadDevTestPolicy`
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": "arn:aws:iam::<management-account-id>:role/TerraformManagementExecutionRole"
+      },
+      "Action": "sts:AssumeRole"
+    }
+  ]
+}
+```
 
-Steps for `TerraformWorkloadBaselineExecutionPolicy`:
+4. Attach `TerraformSecurityExecutionPolicy`.
+5. Name the role `TerraformMemberExecutionRole`.
+
+### Workload-Dev Account
+
+Create two IAM policies and one IAM role in the workload-dev account.
+
+#### Create Baseline IAM Policy
 
 1. Switch to the workload-dev account.
 2. Open IAM > Policies > Create policy.
@@ -217,7 +256,7 @@ Steps for `TerraformWorkloadBaselineExecutionPolicy`:
 }
 ```
 
-Steps for `TerraformWorkloadDevTestPolicy`:
+#### Create Test IAM Policy
 
 1. Stay in the workload-dev account.
 2. Open IAM > Policies > Create policy.
@@ -261,52 +300,7 @@ Steps for `TerraformWorkloadDevTestPolicy`:
 }
 ```
 
-#### Workload-Prod Account
-
-Create one IAM policy:
-
-- `TerraformWorkloadBaselineExecutionPolicy`
-
-Steps:
-
-1. Switch to the workload-prod account.
-2. Open IAM > Policies > Create policy.
-3. Select JSON.
-4. Paste the same `TerraformWorkloadBaselineExecutionPolicy` JSON used for workload-dev.
-5. Select Next.
-6. Name it `TerraformWorkloadBaselineExecutionPolicy`.
-7. Select Create policy.
-
-### Management Role
-
-1. Open IAM > Roles > Create role.
-2. Select Custom trust policy.
-3. Paste this trust policy, replacing `<management-account-id>` and `<runner-role-name>`.
-
-Use the IAM role/user ARN, not the temporary STS assumed-role session ARN.
-
-```json
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Principal": {
-        "AWS": "arn:aws:iam::<management-account-id>:role/<runner-role-name>"
-      },
-      "Action": "sts:AssumeRole"
-    }
-  ]
-}
-```
-
-4. Attach this customer-managed policy:
-   - `TerraformManagementExecutionPolicy`
-5. Name the role `TerraformManagementExecutionRole`.
-
-### Member Roles
-
-Repeat in security, workload-dev, and workload-prod.
+#### Create IAM Role
 
 1. Open IAM > Roles > Create role.
 2. Select Custom trust policy.
@@ -327,11 +321,47 @@ Repeat in security, workload-dev, and workload-prod.
 }
 ```
 
-4. Attach the customer-managed policy for that account:
-   - security: `TerraformSecurityExecutionPolicy`
-   - workload-dev: `TerraformWorkloadBaselineExecutionPolicy`
-   - workload-dev test resources: `TerraformWorkloadDevTestPolicy`
-   - workload-prod: `TerraformWorkloadBaselineExecutionPolicy`
+4. Attach both policies:
+   - `TerraformWorkloadBaselineExecutionPolicy`
+   - `TerraformWorkloadDevTestPolicy`
+5. Name the role `TerraformMemberExecutionRole`.
+
+### Workload-Prod Account
+
+Create one IAM policy and one IAM role in the workload-prod account.
+
+#### Create IAM Policy
+
+1. Switch to the workload-prod account.
+2. Open IAM > Policies > Create policy.
+3. Select JSON.
+4. Paste the same `TerraformWorkloadBaselineExecutionPolicy` JSON used for workload-dev.
+5. Select Next.
+6. Name it `TerraformWorkloadBaselineExecutionPolicy`.
+7. Select Create policy.
+
+#### Create IAM Role
+
+1. Open IAM > Roles > Create role.
+2. Select Custom trust policy.
+3. Paste this trust policy, replacing `<management-account-id>`.
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": "arn:aws:iam::<management-account-id>:role/TerraformManagementExecutionRole"
+      },
+      "Action": "sts:AssumeRole"
+    }
+  ]
+}
+```
+
+4. Attach `TerraformWorkloadBaselineExecutionPolicy`.
 5. Name the role `TerraformMemberExecutionRole`.
 
 If a role already exists: IAM > Roles > select role > Trust relationships > Edit trust policy.
