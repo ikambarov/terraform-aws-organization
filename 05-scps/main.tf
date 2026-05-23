@@ -84,9 +84,6 @@ resource "aws_organizations_policy" "deny_unsupported_regions" {
     ]
   })
 
-  lifecycle {
-    prevent_destroy = true
-  }
 }
 
 resource "aws_organizations_policy" "deny_expensive_ec2" {
@@ -111,9 +108,6 @@ resource "aws_organizations_policy" "deny_expensive_ec2" {
     ]
   })
 
-  lifecycle {
-    prevent_destroy = true
-  }
 }
 
 # SCPs cannot safely express "deny TCP/22 from 0.0.0.0/0 or ::/0" because
@@ -145,9 +139,6 @@ resource "aws_organizations_policy" "deny_unencrypted_ebs" {
     ]
   })
 
-  lifecycle {
-    prevent_destroy = true
-  }
 }
 
 resource "aws_organizations_policy" "require_ec2_tags" {
@@ -284,9 +275,6 @@ resource "aws_organizations_policy" "require_ec2_tags" {
     ]
   })
 
-  lifecycle {
-    prevent_destroy = true
-  }
 }
 
 resource "aws_organizations_policy" "require_s3_macie_tag" {
@@ -306,9 +294,6 @@ resource "aws_organizations_policy" "require_s3_macie_tag" {
     ]
   })
 
-  lifecycle {
-    prevent_destroy = true
-  }
 }
 
 resource "aws_organizations_policy" "deny_iam_user_access_keys" {
@@ -331,9 +316,6 @@ resource "aws_organizations_policy" "deny_iam_user_access_keys" {
     ]
   })
 
-  lifecycle {
-    prevent_destroy = true
-  }
 }
 
 resource "aws_organizations_policy_attachment" "deny_unsupported_regions" {

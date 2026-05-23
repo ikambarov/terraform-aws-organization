@@ -24,9 +24,6 @@ resource "aws_organizations_aws_service_access" "macie" {
 
   service_principal = "macie.amazonaws.com"
 
-  lifecycle {
-    prevent_destroy = true
-  }
 }
 
 resource "aws_macie2_account" "security" {
@@ -35,9 +32,6 @@ resource "aws_macie2_account" "security" {
   finding_publishing_frequency = var.macie_finding_publishing_frequency
   status                       = "ENABLED"
 
-  lifecycle {
-    prevent_destroy = true
-  }
 }
 
 resource "aws_macie2_account" "workload_dev" {
@@ -46,9 +40,6 @@ resource "aws_macie2_account" "workload_dev" {
   finding_publishing_frequency = var.macie_finding_publishing_frequency
   status                       = "ENABLED"
 
-  lifecycle {
-    prevent_destroy = true
-  }
 }
 
 resource "aws_macie2_account" "workload_prod" {
@@ -57,9 +48,6 @@ resource "aws_macie2_account" "workload_prod" {
   finding_publishing_frequency = var.macie_finding_publishing_frequency
   status                       = "ENABLED"
 
-  lifecycle {
-    prevent_destroy = true
-  }
 }
 
 resource "aws_macie2_organization_admin_account" "security" {
@@ -72,9 +60,6 @@ resource "aws_macie2_organization_admin_account" "security" {
     aws_macie2_account.security,
   ]
 
-  lifecycle {
-    prevent_destroy = true
-  }
 }
 
 resource "aws_macie2_organization_configuration" "security" {
@@ -86,9 +71,6 @@ resource "aws_macie2_organization_configuration" "security" {
     aws_macie2_organization_admin_account.security,
   ]
 
-  lifecycle {
-    prevent_destroy = true
-  }
 }
 
 resource "aws_macie2_member" "workload_dev" {

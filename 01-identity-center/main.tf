@@ -43,9 +43,6 @@ resource "aws_ssoadmin_permission_set" "organization_admin" {
   instance_arn     = local.identity_center_instance_arn
   session_duration = var.permission_set_session_duration
 
-  lifecycle {
-    prevent_destroy = true
-  }
 }
 
 resource "aws_ssoadmin_permission_set" "security_admin" {
@@ -54,9 +51,6 @@ resource "aws_ssoadmin_permission_set" "security_admin" {
   instance_arn     = local.identity_center_instance_arn
   session_duration = var.permission_set_session_duration
 
-  lifecycle {
-    prevent_destroy = true
-  }
 }
 
 resource "aws_ssoadmin_permission_set" "workload_dev_admin" {
@@ -65,9 +59,6 @@ resource "aws_ssoadmin_permission_set" "workload_dev_admin" {
   instance_arn     = local.identity_center_instance_arn
   session_duration = var.permission_set_session_duration
 
-  lifecycle {
-    prevent_destroy = true
-  }
 }
 
 resource "aws_ssoadmin_permission_set" "workload_prod_admin" {
@@ -76,9 +67,6 @@ resource "aws_ssoadmin_permission_set" "workload_prod_admin" {
   instance_arn     = local.identity_center_instance_arn
   session_duration = var.permission_set_session_duration
 
-  lifecycle {
-    prevent_destroy = true
-  }
 }
 
 resource "aws_ssoadmin_managed_policy_attachment" "organization_admin" {

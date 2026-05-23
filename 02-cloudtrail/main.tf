@@ -85,9 +85,6 @@ resource "aws_kms_key" "cloudtrail" {
   enable_key_rotation     = true
   policy                  = data.aws_iam_policy_document.cloudtrail_kms.json
 
-  lifecycle {
-    prevent_destroy = true
-  }
 }
 
 resource "aws_kms_alias" "cloudtrail" {
@@ -100,9 +97,6 @@ resource "aws_s3_bucket" "cloudtrail" {
   provider = aws.security
   bucket   = local.cloudtrail_bucket_name
 
-  lifecycle {
-    prevent_destroy = true
-  }
 }
 
 resource "aws_s3_bucket_versioning" "cloudtrail" {
@@ -236,7 +230,4 @@ resource "aws_cloudtrail" "organization" {
     aws_s3_bucket_policy.cloudtrail,
   ]
 
-  lifecycle {
-    prevent_destroy = true
-  }
 }

@@ -38,9 +38,6 @@ resource "aws_iam_role" "workload_dev_backup" {
   name               = var.workload_dev_backup_role_name
   assume_role_policy = data.aws_iam_policy_document.backup_assume_role.json
 
-  lifecycle {
-    prevent_destroy = true
-  }
 }
 
 resource "aws_iam_role" "workload_prod_backup" {
@@ -49,9 +46,6 @@ resource "aws_iam_role" "workload_prod_backup" {
   name               = var.workload_prod_backup_role_name
   assume_role_policy = data.aws_iam_policy_document.backup_assume_role.json
 
-  lifecycle {
-    prevent_destroy = true
-  }
 }
 
 resource "aws_iam_role_policy_attachment" "workload_dev_backup" {
@@ -74,9 +68,6 @@ resource "aws_backup_vault" "workload_dev" {
   name        = var.workload_dev_backup_vault_name
   kms_key_arn = var.workload_dev_backup_vault_kms_key_arn
 
-  lifecycle {
-    prevent_destroy = true
-  }
 }
 
 resource "aws_backup_vault" "workload_prod" {
@@ -85,9 +76,6 @@ resource "aws_backup_vault" "workload_prod" {
   name        = var.workload_prod_backup_vault_name
   kms_key_arn = var.workload_prod_backup_vault_kms_key_arn
 
-  lifecycle {
-    prevent_destroy = true
-  }
 }
 
 resource "aws_backup_plan" "workload_dev_daily" {
@@ -105,9 +93,6 @@ resource "aws_backup_plan" "workload_dev_daily" {
     }
   }
 
-  lifecycle {
-    prevent_destroy = true
-  }
 }
 
 resource "aws_backup_plan" "workload_dev_weekly" {
@@ -125,9 +110,6 @@ resource "aws_backup_plan" "workload_dev_weekly" {
     }
   }
 
-  lifecycle {
-    prevent_destroy = true
-  }
 }
 
 resource "aws_backup_plan" "workload_prod_daily" {
@@ -145,9 +127,6 @@ resource "aws_backup_plan" "workload_prod_daily" {
     }
   }
 
-  lifecycle {
-    prevent_destroy = true
-  }
 }
 
 resource "aws_backup_plan" "workload_prod_weekly" {
@@ -165,9 +144,6 @@ resource "aws_backup_plan" "workload_prod_weekly" {
     }
   }
 
-  lifecycle {
-    prevent_destroy = true
-  }
 }
 
 resource "aws_backup_selection" "workload_dev_daily" {

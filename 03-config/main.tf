@@ -171,9 +171,6 @@ resource "aws_s3_bucket" "config_delivery" {
   provider = aws.security
   bucket   = local.config_delivery_bucket_name
 
-  lifecycle {
-    prevent_destroy = true
-  }
 }
 
 resource "aws_s3_bucket_versioning" "config_delivery" {
@@ -212,9 +209,6 @@ resource "aws_iam_role" "workload_dev_config" {
   name               = var.workload_dev_config_role_name
   assume_role_policy = data.aws_iam_policy_document.config_assume_role.json
 
-  lifecycle {
-    prevent_destroy = true
-  }
 }
 
 resource "aws_iam_role" "workload_prod_config" {
@@ -223,9 +217,6 @@ resource "aws_iam_role" "workload_prod_config" {
   name               = var.workload_prod_config_role_name
   assume_role_policy = data.aws_iam_policy_document.config_assume_role.json
 
-  lifecycle {
-    prevent_destroy = true
-  }
 }
 
 resource "aws_iam_role_policy_attachment" "workload_dev_config" {
@@ -322,9 +313,6 @@ resource "aws_config_configuration_recorder" "workload_dev" {
     aws_iam_role_policy.workload_dev_config_delivery,
   ]
 
-  lifecycle {
-    prevent_destroy = true
-  }
 }
 
 resource "aws_config_configuration_recorder" "workload_prod" {
@@ -343,9 +331,6 @@ resource "aws_config_configuration_recorder" "workload_prod" {
     aws_iam_role_policy.workload_prod_config_delivery,
   ]
 
-  lifecycle {
-    prevent_destroy = true
-  }
 }
 
 resource "aws_config_delivery_channel" "workload_dev" {
@@ -402,9 +387,6 @@ resource "aws_iam_role" "workload_dev_s3_macie_scan_tag_check_lambda" {
   name               = "security-baseline-s3-macie-tag-config-rule"
   assume_role_policy = data.aws_iam_policy_document.lambda_assume_role.json
 
-  lifecycle {
-    prevent_destroy = true
-  }
 }
 
 resource "aws_iam_role" "workload_prod_s3_macie_scan_tag_check_lambda" {
@@ -413,9 +395,6 @@ resource "aws_iam_role" "workload_prod_s3_macie_scan_tag_check_lambda" {
   name               = "security-baseline-s3-macie-tag-config-rule"
   assume_role_policy = data.aws_iam_policy_document.lambda_assume_role.json
 
-  lifecycle {
-    prevent_destroy = true
-  }
 }
 
 resource "aws_iam_role_policy" "workload_dev_s3_macie_scan_tag_check_lambda" {
@@ -449,9 +428,6 @@ resource "aws_lambda_function" "workload_dev_s3_macie_scan_tag_check" {
     aws_iam_role_policy.workload_dev_s3_macie_scan_tag_check_lambda,
   ]
 
-  lifecycle {
-    prevent_destroy = true
-  }
 }
 
 resource "aws_lambda_function" "workload_prod_s3_macie_scan_tag_check" {
@@ -469,9 +445,6 @@ resource "aws_lambda_function" "workload_prod_s3_macie_scan_tag_check" {
     aws_iam_role_policy.workload_prod_s3_macie_scan_tag_check_lambda,
   ]
 
-  lifecycle {
-    prevent_destroy = true
-  }
 }
 
 resource "aws_lambda_permission" "workload_dev_allow_config_s3_macie_scan_tag_check" {
@@ -498,9 +471,6 @@ resource "aws_iam_role" "workload_dev_cloudwatch_agent_check_lambda" {
   name               = "security-baseline-cloudwatch-agent-config-rule"
   assume_role_policy = data.aws_iam_policy_document.lambda_assume_role.json
 
-  lifecycle {
-    prevent_destroy = true
-  }
 }
 
 resource "aws_iam_role" "workload_prod_cloudwatch_agent_check_lambda" {
@@ -509,9 +479,6 @@ resource "aws_iam_role" "workload_prod_cloudwatch_agent_check_lambda" {
   name               = "security-baseline-cloudwatch-agent-config-rule"
   assume_role_policy = data.aws_iam_policy_document.lambda_assume_role.json
 
-  lifecycle {
-    prevent_destroy = true
-  }
 }
 
 resource "aws_iam_role_policy" "workload_dev_cloudwatch_agent_check_lambda" {
@@ -545,9 +512,6 @@ resource "aws_lambda_function" "workload_dev_cloudwatch_agent_check" {
     aws_iam_role_policy.workload_dev_cloudwatch_agent_check_lambda,
   ]
 
-  lifecycle {
-    prevent_destroy = true
-  }
 }
 
 resource "aws_lambda_function" "workload_dev_ssm_managed_check" {
@@ -565,9 +529,6 @@ resource "aws_lambda_function" "workload_dev_ssm_managed_check" {
     aws_iam_role_policy.workload_dev_cloudwatch_agent_check_lambda,
   ]
 
-  lifecycle {
-    prevent_destroy = true
-  }
 }
 
 resource "aws_lambda_function" "workload_prod_cloudwatch_agent_check" {
@@ -585,9 +546,6 @@ resource "aws_lambda_function" "workload_prod_cloudwatch_agent_check" {
     aws_iam_role_policy.workload_prod_cloudwatch_agent_check_lambda,
   ]
 
-  lifecycle {
-    prevent_destroy = true
-  }
 }
 
 resource "aws_lambda_function" "workload_prod_ssm_managed_check" {
@@ -605,9 +563,6 @@ resource "aws_lambda_function" "workload_prod_ssm_managed_check" {
     aws_iam_role_policy.workload_prod_cloudwatch_agent_check_lambda,
   ]
 
-  lifecycle {
-    prevent_destroy = true
-  }
 }
 
 resource "aws_lambda_permission" "workload_dev_allow_config_cloudwatch_agent_check" {
@@ -894,7 +849,4 @@ resource "aws_config_configuration_aggregator" "security" {
     aws_config_aggregate_authorization.workload_prod,
   ]
 
-  lifecycle {
-    prevent_destroy = true
-  }
 }

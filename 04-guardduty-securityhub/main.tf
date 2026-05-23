@@ -24,9 +24,6 @@ resource "aws_organizations_aws_service_access" "guardduty" {
 
   service_principal = "guardduty.amazonaws.com"
 
-  lifecycle {
-    prevent_destroy = true
-  }
 }
 
 resource "aws_organizations_aws_service_access" "securityhub" {
@@ -34,9 +31,6 @@ resource "aws_organizations_aws_service_access" "securityhub" {
 
   service_principal = "securityhub.amazonaws.com"
 
-  lifecycle {
-    prevent_destroy = true
-  }
 }
 
 resource "aws_guardduty_detector" "security" {
@@ -44,9 +38,6 @@ resource "aws_guardduty_detector" "security" {
 
   enable = true
 
-  lifecycle {
-    prevent_destroy = true
-  }
 }
 
 resource "aws_guardduty_detector" "workload_dev" {
@@ -54,9 +45,6 @@ resource "aws_guardduty_detector" "workload_dev" {
 
   enable = true
 
-  lifecycle {
-    prevent_destroy = true
-  }
 }
 
 resource "aws_guardduty_detector" "workload_prod" {
@@ -64,9 +52,6 @@ resource "aws_guardduty_detector" "workload_prod" {
 
   enable = true
 
-  lifecycle {
-    prevent_destroy = true
-  }
 }
 
 resource "aws_guardduty_organization_admin_account" "security" {
@@ -78,9 +63,6 @@ resource "aws_guardduty_organization_admin_account" "security" {
     aws_organizations_aws_service_access.guardduty,
   ]
 
-  lifecycle {
-    prevent_destroy = true
-  }
 }
 
 resource "aws_guardduty_organization_configuration" "security" {
@@ -93,9 +75,6 @@ resource "aws_guardduty_organization_configuration" "security" {
     aws_guardduty_organization_admin_account.security,
   ]
 
-  lifecycle {
-    prevent_destroy = true
-  }
 }
 
 resource "aws_guardduty_member" "workload_dev" {
@@ -151,9 +130,6 @@ resource "aws_securityhub_organization_admin_account" "security" {
     aws_organizations_aws_service_access.securityhub,
   ]
 
-  lifecycle {
-    prevent_destroy = true
-  }
 }
 
 resource "aws_securityhub_account" "security" {
@@ -165,9 +141,6 @@ resource "aws_securityhub_account" "security" {
     aws_securityhub_organization_admin_account.security,
   ]
 
-  lifecycle {
-    prevent_destroy = true
-  }
 }
 
 resource "aws_securityhub_account" "workload_dev" {
@@ -175,9 +148,6 @@ resource "aws_securityhub_account" "workload_dev" {
 
   enable_default_standards = false
 
-  lifecycle {
-    prevent_destroy = true
-  }
 }
 
 resource "aws_securityhub_account" "workload_prod" {
@@ -185,9 +155,6 @@ resource "aws_securityhub_account" "workload_prod" {
 
   enable_default_standards = false
 
-  lifecycle {
-    prevent_destroy = true
-  }
 }
 
 resource "aws_securityhub_organization_configuration" "security" {
@@ -200,9 +167,6 @@ resource "aws_securityhub_organization_configuration" "security" {
     aws_securityhub_account.security,
   ]
 
-  lifecycle {
-    prevent_destroy = true
-  }
 }
 
 resource "aws_securityhub_member" "workload_dev" {
